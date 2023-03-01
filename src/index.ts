@@ -1,3 +1,3 @@
-import { SudokuZkApp } from './sudoku.js';
+import { GameOfLife } from './gameOfLife';
 
-export { SudokuZkApp };
+export { GameOfLife };

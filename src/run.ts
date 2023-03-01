@@ -9,67 +9,118 @@
  * Build the project: `$ npm run build`
  * Run with node:     `$ node build/src/run.js`.
  */
-import { Sudoku, SudokuZkApp } from './sudoku.js';
-import { cloneSudoku, generateSudoku, solveSudoku } from './sudoku-lib.js';
-import { AccountUpdate, Mina, PrivateKey, shutdown } from 'snarkyjs';
 
+import { AccountUpdate, Mina, PrivateKey, shutdown, UInt32 } from 'snarkyjs';
+import { Board, GameOfLife, GameOfLifeZkProgram } from './gameOfLife.js';
+import { getNextState } from './gameOfLifeSimulator.js';
 // setup
 const Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
 
 const { privateKey: senderKey, publicKey: sender } = Local.testAccounts[0];
-const sudoku = generateSudoku(0.5);
 const zkAppPrivateKey = PrivateKey.random();
 const zkAppAddress = zkAppPrivateKey.toPublicKey();
 // create an instance of the smart contract
-const zkApp = new SudokuZkApp(zkAppAddress);
+const zkApp = new GameOfLife(zkAppAddress);
 
-console.log('Deploying and initializing Sudoku...');
-await SudokuZkApp.compile();
+console.log('compiling...');
+const { verificationKey } = await GameOfLifeZkProgram.compile();
+console.log('verificationKey', verificationKey);
+await GameOfLife.compile();
+console.log('creating Deploy transaction...');
 let tx = await Mina.transaction(sender, () => {
   AccountUpdate.fundNewAccount(sender);
   zkApp.deploy();
-  zkApp.update(Sudoku.from(sudoku));
 });
+console.log('proving...');
+let time = Date.now();
 await tx.prove();
-/**
- * note: this tx needs to be signed with `tx.sign()`, because `deploy` uses `requireSignature()` under the hood,
- * so one of the account updates in this tx has to be authorized with a signature (vs proof).
- * this is necessary for the deploy tx because the initial permissions for all account fields are "signature".
- * (but `deploy()` changes some of those permissions to "proof" and adds the verification key that enables proofs.
- * that's why we don't need `tx.sign()` for the later transactions.)
- */
+console.log('proving Deploy took', Date.now() - time, 'ms');
 await tx.sign([zkAppPrivateKey, senderKey]).send();
 
-console.log('Is the sudoku solved?', zkApp.isSolved.get().toBoolean());
+let solution = [
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 1, 1, 0, 0, 0, 0],
+  [0, 0, 1, 1, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+];
 
-let solution = solveSudoku(sudoku);
-if (solution === undefined) throw Error('cannot happen');
+// console.log('Submitting solution...');
+// tx = await Mina.transaction(sender, () => {
+//   zkApp.submitStillSolution(Board.from(solution));
+// });
+// time = Date.now();
+// await tx.prove();
+// console.log('proving took', Date.now() - time, 'ms');
+// await tx.sign([senderKey]).send();
 
-// submit a wrong solution
-let noSolution = cloneSudoku(solution);
-noSolution[0][0] = (noSolution[0][0] % 9) + 1;
+// Repeater solution
+solution = [
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 1, 1, 0, 0],
+  [0, 0, 0, 0, 1, 1, 0, 0],
+  [0, 0, 1, 1, 0, 0, 0, 0],
+  [0, 0, 1, 1, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+];
+// console.log(
+//   getNextState(getNextState(solution))
+//     .map((row) => row.join(''))
+//     .join('\n')
+// );
 
-console.log('Submitting wrong solution...');
-try {
-  let tx = await Mina.transaction(sender, () => {
-    zkApp.submitSolution(Sudoku.from(sudoku), Sudoku.from(noSolution));
-  });
-  await tx.prove();
-  await tx.sign([senderKey]).send();
-} catch {
-  console.log('There was an error submitting the solution, as expected');
-}
-console.log('Is the sudoku solved?', zkApp.isSolved.get().toBoolean());
+time = Date.now();
+let proof1 = await GameOfLifeZkProgram.init(
+  {
+    stateHash: Board.from(solution).hash(),
+    initialStateHash: Board.from(solution).hash(),
+    step: UInt32.zero,
+  },
+  Board.from(solution)
+);
+console.log('generating proof1 took', Date.now() - time, 'ms');
+time = Date.now();
+let proof2 = await GameOfLifeZkProgram.step(
+  {
+    stateHash: Board.from(getNextState(solution)).hash(),
+    initialStateHash: Board.from(solution).hash(),
+    step: UInt32.from(1),
+  },
+  Board.from(solution),
+  Board.from(getNextState(solution)),
+  proof1
+);
+console.log('generating proof2 took', Date.now() - time, 'ms');
+time = Date.now();
+let proof3 = await GameOfLifeZkProgram.step(
+  {
+    stateHash: Board.from(solution).hash(),
+    initialStateHash: Board.from(solution).hash(),
+    step: UInt32.from(2),
+  },
+  Board.from(getNextState(solution)),
+  Board.from(solution),
+  proof2
+);
+console.log('generating proof3 took', Date.now() - time, 'ms');
 
-// submit the actual solution
-console.log('Submitting solution...');
+// const isCorrect = await verify(proof3.toJSON(), verificationKey);
+// expect(isCorrect).toBe(true);
+
 tx = await Mina.transaction(sender, () => {
-  zkApp.submitSolution(Sudoku.from(sudoku), Sudoku.from(solution!));
+  let zkApp = new GameOfLife(zkAppAddress);
+  zkApp.submitRepeaterSolution(proof3, UInt32.from(2));
 });
+time = Date.now();
 await tx.prove();
+console.log('proving took', Date.now() - time, 'ms');
 await tx.sign([senderKey]).send();
-console.log('Is the sudoku solved?', zkApp.isSolved.get().toBoolean());
 
 // cleanup
 await shutdown();

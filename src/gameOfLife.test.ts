@@ -1,4 +1,5 @@
-import { Board, GameOfLife } from './gameOfLife';
+import { Board, GameOfLife, GameOfLifeZkProgram } from './gameOfLife';
+import { getNextState } from './gameOfLifeSimulator';
 import {
   isReady,
   shutdown,
@@ -6,6 +7,8 @@ import {
   PublicKey,
   Mina,
   AccountUpdate,
+  UInt32,
+  verify,
 } from 'snarkyjs';
 
 describe('gameOfLife Contract', () => {
@@ -91,6 +94,60 @@ describe('gameOfLife Contract', () => {
       await tx.prove();
       await tx.sign([senderKey]).send();
     }).rejects.toThrow('4,3 has invalid value');
+  });
+
+  it('accepts a correct RepeaterSolution', async () => {
+    await deploy(zkApp, zkAppPrivateKey, sender, senderKey);
+
+    let solution = [
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 1, 1, 0, 0],
+      [0, 0, 0, 0, 1, 1, 0, 0],
+      [0, 0, 1, 1, 0, 0, 0, 0],
+      [0, 0, 1, 1, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+    ];
+
+    const { verificationKey } = await GameOfLifeZkProgram.compile();
+    let proof1 = await GameOfLifeZkProgram.init(
+      {
+        stateHash: Board.from(solution).hash(),
+        initialStateHash: Board.from(solution).hash(),
+        step: UInt32.zero,
+      },
+      Board.from(solution)
+    );
+    let proof2 = await GameOfLifeZkProgram.step(
+      {
+        stateHash: Board.from(getNextState(solution)).hash(),
+        initialStateHash: Board.from(solution).hash(),
+        step: UInt32.one,
+      },
+      Board.from(solution),
+      Board.from(getNextState(solution)),
+      proof1
+    );
+    let proof3 = await GameOfLifeZkProgram.step(
+      {
+        stateHash: Board.from(solution).hash(),
+        initialStateHash: Board.from(solution).hash(),
+        step: UInt32.from(2),
+      },
+      Board.from(getNextState(solution)),
+      Board.from(solution),
+      proof2
+    );
+
+    const isCorrect = await verify(proof3.toJSON(), verificationKey);
+    expect(isCorrect).toBe(true);
+
+    let tx = await Mina.transaction(sender, () => {
+      let zkApp = new GameOfLife(zkAppAddress);
+      zkApp.submitRepeaterSolution(proof3, UInt32.from(2));
+    });
+    await tx.prove();
   });
 });
 
