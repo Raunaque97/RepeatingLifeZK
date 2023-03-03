@@ -1,6 +1,7 @@
-# Mina zkApp: Sudoku
+# Mina zkApp: RepeatingLifeZk
 
-This template uses TypeScript.
+The is a Play on [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life).
+The objective of the game is to find patterns that repeat themselves. Submit proof of solutions on mina chain to win points.
 
 ## How to build
 
