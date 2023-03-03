@@ -78,8 +78,8 @@ solution = [
 time = Date.now();
 let proof1 = await GameOfLifeZkProgram.init(
   {
-    stateHash: Board.from(solution).hash(),
-    initialStateHash: Board.from(solution).hash(),
+    state: Board.from(solution),
+    initialState: Board.from(solution),
     step: UInt32.zero,
   },
   Board.from(solution)
@@ -88,8 +88,8 @@ console.log('generating proof1 took', Date.now() - time, 'ms');
 time = Date.now();
 let proof2 = await GameOfLifeZkProgram.step(
   {
-    stateHash: Board.from(getNextState(solution)).hash(),
-    initialStateHash: Board.from(solution).hash(),
+    state: Board.from(getNextState(solution)),
+    initialState: Board.from(solution),
     step: UInt32.from(1),
   },
   Board.from(solution),
@@ -100,8 +100,8 @@ console.log('generating proof2 took', Date.now() - time, 'ms');
 time = Date.now();
 let proof3 = await GameOfLifeZkProgram.step(
   {
-    stateHash: Board.from(solution).hash(),
-    initialStateHash: Board.from(solution).hash(),
+    state: Board.from(solution),
+    initialState: Board.from(solution),
     step: UInt32.from(2),
   },
   Board.from(getNextState(solution)),

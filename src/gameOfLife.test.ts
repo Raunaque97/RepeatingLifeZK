@@ -113,16 +113,16 @@ describe('gameOfLife Contract', () => {
     const { verificationKey } = await GameOfLifeZkProgram.compile();
     let proof1 = await GameOfLifeZkProgram.init(
       {
-        stateHash: Board.from(solution).hash(),
-        initialStateHash: Board.from(solution).hash(),
+        state: Board.from(solution),
+        initialState: Board.from(solution),
         step: UInt32.zero,
       },
       Board.from(solution)
     );
     let proof2 = await GameOfLifeZkProgram.step(
       {
-        stateHash: Board.from(getNextState(solution)).hash(),
-        initialStateHash: Board.from(solution).hash(),
+        state: Board.from(getNextState(solution)),
+        initialState: Board.from(solution),
         step: UInt32.one,
       },
       Board.from(solution),
@@ -131,8 +131,8 @@ describe('gameOfLife Contract', () => {
     );
     let proof3 = await GameOfLifeZkProgram.step(
       {
-        stateHash: Board.from(solution).hash(),
-        initialStateHash: Board.from(solution).hash(),
+        state: Board.from(solution),
+        initialState: Board.from(solution),
         step: UInt32.from(2),
       },
       Board.from(getNextState(solution)),
