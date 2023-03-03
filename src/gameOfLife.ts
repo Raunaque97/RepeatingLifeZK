@@ -33,11 +33,20 @@ class Board extends Struct({
         .flat()
     );
   }
+  equals(other: Board) {
+    return this.value
+      .map((row, i) =>
+        row
+          .map((v, j) => v.equals(other.value[i][j]))
+          .reduce((a, b) => a.and(b))
+      )
+      .reduce((a, b) => a.and(b));
+  }
 }
 
 class RollupState extends Struct({
-  stateHash: Field,
-  initialStateHash: Field,
+  state: Board,
+  initialState: Board,
   step: UInt32,
 }) {}
 
@@ -48,9 +57,9 @@ export const GameOfLifeZkProgram = Experimental.ZkProgram({
     init: {
       privateInputs: [Board],
       method(rollupState: RollupState, board: Board) {
-        rollupState.stateHash.equals(board.hash()).assertTrue('invalid board');
-        rollupState.initialStateHash
-          .equals(rollupState.stateHash)
+        rollupState.state.equals(board).assertTrue('invalid board');
+        rollupState.initialState
+          .equals(board)
           .assertTrue('invalid initial state');
         rollupState.step.equals(UInt32.zero).assertTrue('step starts with 0');
         verifyValidBoard(board);
@@ -70,17 +79,14 @@ export const GameOfLifeZkProgram = Experimental.ZkProgram({
           .equals(earlierProof.publicInput.step.add(1))
           .assertTrue();
         // stateHash = hash(newBoard)
-        rollupState.stateHash
-          .equals(newBoard.hash())
-          .assertTrue('invalid new board');
+        rollupState.state.equals(newBoard).assertTrue('invalid new board');
         // initialStateHash should not change
-        rollupState.initialStateHash
-          .equals(earlierProof.publicInput.initialStateHash)
+        rollupState.initialState
+          .equals(earlierProof.publicInput.initialState)
           .assertTrue('invalid initial state');
         // verify correct oldBoard is provided
         oldBoard
-          .hash()
-          .equals(earlierProof.publicInput.stateHash)
+          .equals(earlierProof.publicInput.state)
           .assertTrue('invalid old board');
         verifyValidBoard(newBoard);
         verifyCorrectTransition(oldBoard, newBoard);
@@ -120,9 +126,9 @@ class GameOfLife extends SmartContract {
     n: UInt32
   ) {
     zkProgram.verify();
-    zkProgram.publicInput.initialStateHash.assertEquals(
-      zkProgram.publicInput.stateHash
-    );
+    zkProgram.publicInput.initialState
+      .equals(zkProgram.publicInput.state)
+      .assertTrue('first and last board must be the same');
     zkProgram.publicInput.step.assertEquals(n);
     // n >= 2
     n.greaterThan(UInt32.from(1)).assertTrue('n must be greater than 1');
