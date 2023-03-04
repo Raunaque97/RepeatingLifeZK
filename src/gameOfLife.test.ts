@@ -145,7 +145,7 @@ describe('gameOfLife Contract', () => {
 
     let tx = await Mina.transaction(sender, () => {
       let zkApp = new GameOfLife(zkAppAddress);
-      zkApp.submitRepeaterSolution(proof3, UInt32.from(2));
+      zkApp.submitRepeaterSolution(proof3);
     });
     await tx.prove();
   });

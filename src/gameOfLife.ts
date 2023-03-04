@@ -8,6 +8,7 @@ import {
   Experimental,
   SelfProof,
 } from 'snarkyjs';
+import { getNextState } from './gameOfLifeSimulator.js';
 
 export { Board, GameOfLife };
 
@@ -111,17 +112,15 @@ class GameOfLife extends SmartContract {
    * a repeater Solution is a pattern that repeats itself after a certain number of steps(n)
    * @param solutionBoard
    */
-  @method submitRepeaterSolution(
-    zkProgram: GameOfLifeRecursiveProof,
-    n: UInt32
-  ) {
+  @method submitRepeaterSolution(zkProgram: GameOfLifeRecursiveProof) {
     zkProgram.verify();
     zkProgram.publicInput.initialState
       .equals(zkProgram.publicInput.state)
       .assertTrue('first and last board must be the same');
-    zkProgram.publicInput.step.assertEquals(n);
-    // n >= 2
-    n.greaterThan(UInt32.from(1)).assertTrue('n must be greater than 1');
+    // step >= 2
+    zkProgram.publicInput.step
+      .greaterThan(UInt32.from(1))
+      .assertTrue('steps >= 2');
   }
 }
 
@@ -190,4 +189,43 @@ function verifyCorrectTransition(from: Board, to: Board) {
         .assertTrue('transition is not correct for ' + i + ',' + j);
     }
   }
+}
+
+/**
+ * GameOfLifeZkProgram should be compiled
+ * @param board
+ * @param n number of steps to simulate
+ */
+export async function generateProof(
+  solution: number[][],
+  n: number
+): Promise<GameOfLifeRecursiveProof> {
+  let initialBoard = Board.from(solution);
+  let proof = await GameOfLifeZkProgram.init(
+    {
+      state: initialBoard,
+      initialState: initialBoard,
+      step: UInt32.zero,
+    },
+    initialBoard
+  );
+  let step = 1;
+  let board = solution;
+  let nextBoard = getNextState(board);
+  while (step <= n) {
+    proof = await GameOfLifeZkProgram.step(
+      {
+        state: Board.from(nextBoard),
+        initialState: initialBoard,
+        step: UInt32.from(step),
+      },
+      Board.from(board),
+      Board.from(nextBoard),
+      proof
+    );
+    step++;
+    board = nextBoard;
+    nextBoard = getNextState(board);
+  }
+  return proof;
 }

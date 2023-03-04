@@ -10,9 +10,12 @@
  * Run with node:     `$ node build/src/run.js`.
  */
 
-import { AccountUpdate, Mina, PrivateKey, shutdown, UInt32 } from 'snarkyjs';
-import { Board, GameOfLife, GameOfLifeZkProgram } from './gameOfLife.js';
-import { getNextState } from './gameOfLifeSimulator.js';
+import { AccountUpdate, Mina, PrivateKey, shutdown } from 'snarkyjs';
+import {
+  GameOfLife,
+  GameOfLifeZkProgram,
+  generateProof,
+} from './gameOfLife.js';
 // setup
 const Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -76,46 +79,15 @@ solution = [
 // );
 
 time = Date.now();
-let proof1 = await GameOfLifeZkProgram.init(
-  {
-    state: Board.from(solution),
-    initialState: Board.from(solution),
-    step: UInt32.zero,
-  },
-  Board.from(solution)
-);
-console.log('generating proof1 took', Date.now() - time, 'ms');
-time = Date.now();
-let proof2 = await GameOfLifeZkProgram.step(
-  {
-    state: Board.from(getNextState(solution)),
-    initialState: Board.from(solution),
-    step: UInt32.from(1),
-  },
-  Board.from(solution),
-  Board.from(getNextState(solution)),
-  proof1
-);
-console.log('generating proof2 took', Date.now() - time, 'ms');
-time = Date.now();
-let proof3 = await GameOfLifeZkProgram.step(
-  {
-    state: Board.from(solution),
-    initialState: Board.from(solution),
-    step: UInt32.from(2),
-  },
-  Board.from(getNextState(solution)),
-  Board.from(solution),
-  proof2
-);
-console.log('generating proof3 took', Date.now() - time, 'ms');
+let resursiveProof = await generateProof(solution, 2);
+console.log('generating resursiveProof took', Date.now() - time, 'ms');
 
 // const isCorrect = await verify(proof3.toJSON(), verificationKey);
 // expect(isCorrect).toBe(true);
 
 tx = await Mina.transaction(sender, () => {
   let zkApp = new GameOfLife(zkAppAddress);
-  zkApp.submitRepeaterSolution(proof3, UInt32.from(2));
+  zkApp.submitRepeaterSolution(resursiveProof);
 });
 time = Date.now();
 await tx.prove();
