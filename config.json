@@ -4,8 +4,10 @@
     "berkeley": {
       "url": "https://proxy.berkeley.minaexplorer.com/graphql",
       "keyPath": "keys/berkeley.json",
-      "fee": "0.1",
-      "smartContract": "GameOfLife"
+      "feepayerKeyPath": "/home/rau/.cache/zkapp-cli/keys/test1.json",
+      "feepayerAlias": "test1",
+      "fee": ".2",
+      "smartContract": "gameOfLife"
     }
   }
 }
