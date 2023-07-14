@@ -1,8 +1,6 @@
-import { Board, GameOfLife, GameOfLifeZkProgram } from './gameOfLife';
+import { Board, GameOfLife } from './gameOfLife';
 import { getNextState } from './gameOfLifeSimulator';
 import {
-  isReady,
-  shutdown,
   PrivateKey,
   PublicKey,
   Mina,
@@ -10,6 +8,7 @@ import {
   UInt32,
   verify,
 } from 'snarkyjs';
+import { GameOfLifeZkProgram } from './gameOfLifeZkProgram';
 
 describe('gameOfLife Contract', () => {
   let zkApp: GameOfLife,
@@ -19,7 +18,6 @@ describe('gameOfLife Contract', () => {
     senderKey: PrivateKey;
 
   beforeEach(async () => {
-    await isReady;
     let Local = Mina.LocalBlockchain({ proofsEnabled: false });
     Mina.setActiveInstance(Local);
     sender = Local.testAccounts[0].publicKey;
@@ -27,10 +25,6 @@ describe('gameOfLife Contract', () => {
     zkAppPrivateKey = PrivateKey.random();
     zkAppAddress = zkAppPrivateKey.toPublicKey();
     zkApp = new GameOfLife(zkAppAddress);
-  });
-
-  afterAll(() => {
-    setTimeout(shutdown, 0);
   });
 
   it('accepts a correct StillSolution', async () => {
@@ -111,22 +105,17 @@ describe('gameOfLife Contract', () => {
     ];
 
     const { verificationKey } = await GameOfLifeZkProgram.compile();
-    let proof1 = await GameOfLifeZkProgram.init(
-      {
-        state: Board.from(solution),
-        initialState: Board.from(solution),
-        step: UInt32.zero,
-      },
-      Board.from(solution)
-    );
+    let proof1 = await GameOfLifeZkProgram.init({
+      state: Board.from(solution),
+      initialState: Board.from(solution),
+      step: UInt32.zero,
+    });
     let proof2 = await GameOfLifeZkProgram.step(
       {
         state: Board.from(getNextState(solution)),
         initialState: Board.from(solution),
         step: UInt32.one,
       },
-      Board.from(solution),
-      Board.from(getNextState(solution)),
       proof1
     );
     let proof3 = await GameOfLifeZkProgram.step(
@@ -135,8 +124,6 @@ describe('gameOfLife Contract', () => {
         initialState: Board.from(solution),
         step: UInt32.from(2),
       },
-      Board.from(getNextState(solution)),
-      Board.from(solution),
       proof2
     );
 

@@ -1,3 +1,16 @@
-import { GameOfLife } from './gameOfLife';
+import { GameOfLife, generateProof } from './gameOfLife.js';
+import {
+  Board,
+  boardSize,
+  GameOfLifeZkProgram,
+  GameOfLifeRecursiveProof,
+} from './gameOfLifeZkProgram.js';
 
-export { GameOfLife };
+export {
+  Board,
+  boardSize,
+  GameOfLife,
+  GameOfLifeZkProgram,
+  GameOfLifeRecursiveProof,
+  generateProof,
+};

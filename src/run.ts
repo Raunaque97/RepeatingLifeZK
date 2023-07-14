@@ -11,11 +11,10 @@
  */
 
 import { AccountUpdate, Mina, PrivateKey, shutdown } from 'snarkyjs';
-import {
-  GameOfLife,
-  GameOfLifeZkProgram,
-  generateProof,
-} from './gameOfLife.js';
+import { Board, GameOfLife, generateProof } from './gameOfLife.js';
+import { GameOfLifeZkProgram } from './gameOfLifeZkProgram.js';
+import { getNextState } from './gameOfLifeSimulator.js';
+
 // setup
 const Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -52,14 +51,14 @@ let solution = [
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
-// console.log('Submitting solution...');
-// tx = await Mina.transaction(sender, () => {
-//   zkApp.submitStillSolution(Board.from(solution));
-// });
-// time = Date.now();
-// await tx.prove();
-// console.log('proving took', Date.now() - time, 'ms');
-// await tx.sign([senderKey]).send();
+console.log('Submitting solution...');
+tx = await Mina.transaction(sender, () => {
+  zkApp.submitStillSolution(Board.from(solution));
+});
+time = Date.now();
+await tx.prove();
+console.log('proving took', Date.now() - time, 'ms');
+await tx.sign([senderKey]).send();
 
 // Repeater solution
 solution = [
@@ -93,6 +92,3 @@ time = Date.now();
 await tx.prove();
 console.log('proving took', Date.now() - time, 'ms');
 await tx.sign([senderKey]).send();
-
-// cleanup
-await shutdown();

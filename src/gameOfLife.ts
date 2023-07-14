@@ -1,92 +1,11 @@
-import {
-  SmartContract,
-  method,
-  isReady,
-  Struct,
-  Circuit,
-  UInt32,
-  Experimental,
-  SelfProof,
-} from 'snarkyjs';
+import { SmartContract, method, isReady, Circuit, UInt32 } from 'snarkyjs';
 import { getNextState } from './gameOfLifeSimulator.js';
-
-export { Board, GameOfLife };
-
-await isReady;
-
-const boardSize = 8;
-
-class Board extends Struct({
-  value: Circuit.array(Circuit.array(UInt32, boardSize), boardSize),
-}) {
-  static from(value: number[][]) {
-    return new Board({
-      value: value.map((row) => row.map((v) => UInt32.from(v))),
-    });
-  }
-  equals(other: Board) {
-    return this.value
-      .map((row, i) =>
-        row
-          .map((v, j) => v.equals(other.value[i][j]))
-          .reduce((a, b) => a.and(b))
-      )
-      .reduce((a, b) => a.and(b));
-  }
-}
-
-class RollupState extends Struct({
-  state: Board,
-  initialState: Board,
-  step: UInt32,
-}) {}
-
-export const GameOfLifeZkProgram = Experimental.ZkProgram({
-  publicInput: RollupState, // hash of the board
-
-  methods: {
-    init: {
-      privateInputs: [Board],
-      method(rollupState: RollupState, board: Board) {
-        rollupState.state.equals(board).assertTrue('invalid board');
-        rollupState.initialState
-          .equals(board)
-          .assertTrue('invalid initial state');
-        rollupState.step.equals(UInt32.zero).assertTrue('step starts with 0');
-        verifyValidBoard(board);
-      },
-    },
-    step: {
-      privateInputs: [Board, Board, SelfProof],
-      method(
-        rollupState: RollupState,
-        oldBoard: Board,
-        newBoard: Board,
-        earlierProof: SelfProof<RollupState>
-      ) {
-        earlierProof.verify();
-        // step ++
-        rollupState.step
-          .equals(earlierProof.publicInput.step.add(1))
-          .assertTrue();
-        // stateHash = hash(newBoard)
-        rollupState.state.equals(newBoard).assertTrue('invalid new board');
-        // initialStateHash should not change
-        rollupState.initialState
-          .equals(earlierProof.publicInput.initialState)
-          .assertTrue('invalid initial state');
-        // verify correct oldBoard is provided
-        oldBoard
-          .equals(earlierProof.publicInput.state)
-          .assertTrue('invalid old board');
-        verifyValidBoard(newBoard);
-        verifyCorrectTransition(oldBoard, newBoard);
-      },
-    },
-  },
-});
-let Proof_ = Experimental.ZkProgram.Proof(GameOfLifeZkProgram);
-export class GameOfLifeRecursiveProof extends Proof_ {}
+import {
+  Board,
+  GameOfLifeRecursiveProof,
+  GameOfLifeZkProgram,
+  boardSize,
+} from './gameOfLifeZkProgram.js';
 
 /****************************************************************************************
  * The GameOfLife contract
@@ -127,7 +46,7 @@ class GameOfLife extends SmartContract {
 /**
  * verify wheter all values are only 0 or 1
  */
-function verifyValidBoard(board: Board) {
+export function verifyValidBoard(board: Board) {
   for (let i = 0; i < boardSize; i++) {
     for (let j = 0; j < boardSize; j++) {
       board.value[i][j]
@@ -149,7 +68,7 @@ function verifyValidBoard(board: Board) {
  * @param from
  * @param to
  */
-function verifyCorrectTransition(from: Board, to: Board) {
+export function verifyCorrectTransition(from: Board, to: Board) {
   for (let i = 0; i < boardSize; i++) {
     for (let j = 0; j < boardSize; j++) {
       let liveNeighbours = [
@@ -191,8 +110,10 @@ function verifyCorrectTransition(from: Board, to: Board) {
   }
 }
 
+export { Board, GameOfLife };
+
 /**
- * GameOfLifeZkProgram should be compiled
+ * GameOfLifeZkProgram should be compiled before running this function
  * @param board
  * @param n number of steps to simulate
  */
@@ -201,26 +122,21 @@ export async function generateProof(
   n: number
 ): Promise<GameOfLifeRecursiveProof> {
   let initialBoard = Board.from(solution);
-  let proof = await GameOfLifeZkProgram.init(
-    {
-      state: initialBoard,
-      initialState: initialBoard,
-      step: UInt32.zero,
-    },
-    initialBoard
-  );
+  let proof = await GameOfLifeZkProgram.init({
+    initialState: initialBoard,
+    state: initialBoard,
+    step: UInt32.zero,
+  });
   let step = 1;
   let board = solution;
   let nextBoard = getNextState(board);
   while (step <= n) {
     proof = await GameOfLifeZkProgram.step(
       {
-        state: Board.from(nextBoard),
         initialState: initialBoard,
+        state: Board.from(nextBoard),
         step: UInt32.from(step),
       },
-      Board.from(board),
-      Board.from(nextBoard),
       proof
     );
     step++;
