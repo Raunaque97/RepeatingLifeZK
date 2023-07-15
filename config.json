@@ -6,7 +6,7 @@
       "keyPath": "keys/berkeley.json",
       "feepayerKeyPath": "/home/rau/.cache/zkapp-cli/keys/test1.json",
       "feepayerAlias": "test1",
-      "fee": ".2",
+      "fee": ".1",
       "smartContract": "gameOfLife"
     }
   }
