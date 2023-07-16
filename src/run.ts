@@ -27,7 +27,7 @@ const zkApp = new GameOfLife(zkAppAddress);
 
 console.log('compiling...');
 const { verificationKey } = await GameOfLifeZkProgram.compile();
-console.log('verificationKey', verificationKey);
+// console.log('verificationKey', verificationKey);
 await GameOfLife.compile();
 console.log('creating Deploy transaction...');
 let tx = await Mina.transaction(sender, () => {

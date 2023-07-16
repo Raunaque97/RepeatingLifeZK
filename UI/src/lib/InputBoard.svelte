@@ -1,38 +1,14 @@
 <script>
-  import { getNextState } from '../../../src/gameOfLifeSimulator';
-
-  let grid = Array(8)
-    .fill()
-    .map(() => Array(8).fill(0)); // initialize an 8x8 grid with all cells dead
-
-  let simulating = false;
-  let step;
+  export let board;
+  export let frozen = false;
 
   function toggleCell(row, col) {
-    if (!simulating) grid[row][col] = 1 - grid[row][col];
-  }
-
-  let intervalId = null;
-  function simulateGame() {
-    // simulate the game of life
-    if (simulating) return;
-
-    simulating = true;
-    step = 1;
-    intervalId = setInterval(() => {
-      grid = getNextState(grid);
-      console.log('simulating', step);
-      step++;
-    }, 500);
-  }
-  function stopGame() {
-    clearInterval(intervalId);
-    simulating = false;
+    if (!frozen) board[row][col] = 1 - board[row][col];
   }
 </script>
 
-<div class="grid">
-  {#each grid as row, i}
+<div class="grid {frozen ? 'frozen' : ''}">
+  {#each board as row, i}
     <div>
       {#each row as cell, j}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -43,9 +19,6 @@
       {/each}
     </div>
   {/each}
-  <button on:click={simulating ? stopGame : simulateGame}>
-    {simulating ? 'Stop' : 'Start'}
-  </button>
 </div>
 
 <style>
@@ -66,6 +39,9 @@
   .grid {
     margin: 20px auto;
     text-align: center;
+  }
+  .frozen {
+    background-color: rgba(0, 0, 0, 0.5);
   }
   button {
     margin-top: 20px;

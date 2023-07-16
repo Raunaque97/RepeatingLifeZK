@@ -7,7 +7,7 @@
       "feepayerKeyPath": "/home/rau/.cache/zkapp-cli/keys/test1.json",
       "feepayerAlias": "test1",
       "fee": ".1",
-      "smartContract": "gameOfLife"
+      "smartContract": "Add"
     }
   }
 }
