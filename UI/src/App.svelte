@@ -6,33 +6,21 @@
   import InputBoard from './lib/InputBoard.svelte';
   import { getNextState } from '../../src/gameOfLifeSimulator';
   import { findRepeatStep } from './lib/Helpers';
+  import ContractController from './lib/ContractController';
 
   let accounts;
-  let gameOfLifeContractInstance;
   let submitting = false;
+  let contractLoaded = false;
   let solution = Array(8)
     .fill([])
     .map(() => Array(8).fill(0));
 
   Mina.Network('https://proxy.berkeley.minaexplorer.com/graphql');
 
+  let contractController = new ContractController();
   onMount(async () => {
-    const { GameOfLife, GameOfLifeZkProgram } = await import(
-      '../../build/src/'
-    );
-    console.log('compiling zk program');
-    // TODO move to a web worker
-    let time = Date.now();
-    await GameOfLifeZkProgram.compile();
-    console.log('compiling game of life contract');
-    await GameOfLife.compile();
-    console.log('compiling took', (Date.now() - time) / 1000, 's');
-    const zkAppAddress = PublicKey.fromBase58(
-      'B62qoddkoudymaz67Akgpq78xnHEQGfFKFu3b1gKegHfViS7u67fitc'
-    );
-    await fetchAccount({ publicKey: zkAppAddress });
-    gameOfLifeContractInstance = new GameOfLife(zkAppAddress);
-    console.log(accounts);
+    await contractController.loadContract();
+    contractLoaded = true;
   });
 
   async function connectWallet() {
@@ -47,9 +35,11 @@
   async function onSubmit() {
     console.log('submitting...');
     submitting = true;
-    const solutionBoard = Board.from(solution);
-    // console.log(solutionBoard);
-
+    if (solution.every((row) => row.every((cell) => cell == 0))) {
+      console.log('%c Invalid solution!', 'color: red ; font-weight: bold');
+      submitting = false;
+      return;
+    }
     let repeatStep = findRepeatStep(solution);
     if (repeatStep == 1) {
       //found a still life
@@ -69,33 +59,17 @@
       submitting = false;
       return;
     }
-
     try {
-      const tx = await Mina.transaction(async () => {
-        if (repeatStep == 1) {
-          gameOfLifeContractInstance.submitStillSolution(solutionBoard);
-        } else {
-          const resursiveProof = await generateProof(solution, repeatStep);
-          gameOfLifeContractInstance.submitRepeaterSolution(resursiveProof);
-        }
-      });
-      // proving takes a while
-      let time = Date.now();
-      await tx.prove();
-      console.log('proving took', (Date.now() - time) / 1000, 's');
-
-      // send the transaction
-      const { hash } = await window?.mina?.sendTransaction({
-        transaction: tx.toJSON(),
-        feePayer: {
-          fee: '0.1',
-        },
-      });
-      console.log('transaction hash:', hash);
+      await contractController
+        .submitSolution(solution, repeatStep)
+        .catch((err) => {
+          console.warn('submit failed', err);
+        });
     } catch (err) {
-      console.log(err.message);
+      console.log(err);
+    } finally {
+      submitting = false;
     }
-    submitting = false;
   }
 </script>
 
@@ -131,7 +105,7 @@
   <div style="display: flex; padding: 10px; justify-content: space-evenly;">
     <GameOfLifeSim />
     <div>
-      {#if gameOfLifeContractInstance == undefined}
+      {#if !contractLoaded}
         <h3>compiling contracts ...</h3>
       {:else}
         <!-- submit button -->
