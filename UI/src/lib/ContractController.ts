@@ -1,4 +1,3 @@
-import { PublicKey } from 'snarkyjs';
 import WebWorker from './WebWorker?worker';
 
 /**

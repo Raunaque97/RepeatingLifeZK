@@ -1,10 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Mina, PublicKey, fetchAccount } from 'snarkyjs';
-  import { Board, generateProof } from 'game_of_life';
+  import { Mina, PublicKey, fetchAccount } from 'o1js';
+  import { Board, generateProof, getNextState } from '@game_of_life/contracts';
   import GameOfLifeSim from './lib/GameOfLifeSim.svelte';
   import InputBoard from './lib/InputBoard.svelte';
-  import { getNextState } from '../../src/gameOfLifeSimulator';
   import { findRepeatStep } from './lib/Helpers';
   import ContractController from './lib/ContractController';
 

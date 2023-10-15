@@ -2,7 +2,7 @@
   "name": "game_of_life",
   "version": "0.1.0",
   "description": "",
-  "author": "",
+  "author": "Raunaque",
   "license": "Apache-2.0",
   "keywords": [
     "mina-zkapp",
@@ -12,50 +12,19 @@
     "recursive-zkProofs",
     "Game-Of-Life"
   ],
-  "type": "module",
-  "main": "build/src/index.js",
-  "types": "build/src/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "buildw": "tsc -p tsconfig.json --watch",
-    "deploy": "node build/src/customDeploy.js",
-    "coverage": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js --coverage",
-    "format": "prettier --write --ignore-unknown **/*",
+    "build": "npm run build -w @game_of_life/contracts",
+    "deploy": "npm run deploy -w @game_of_life/contracts",
+    "test": "npm run test -w @game_of_life/contracts",
+    "dev": "npm run dev -w @game_of_life/ui",
     "prepare": "husky install",
-    "test": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js",
-    "testw": "node --experimental-vm-modules --experimental-wasm-modules --experimental-wasm-threads node_modules/jest/bin/jest.js --watch",
-    "lint": "npx eslint src/* --fix",
-    "start": "node build/src/run.js"
+    "start": "npm run start -w @game_of_life/contracts"
   },
-  "lint-staged": {
-    "**/*": [
-      "eslint src/* --fix",
-      "prettier --write --ignore-unknown"
-    ]
-  },
+  "workspaces": [
+    "UI",
+    "Contracts"
+  ],
   "devDependencies": {
-    "@babel/preset-env": "^7.16.4",
-    "@babel/preset-typescript": "^7.16.0",
-    "@types/fs-extra": "^11.0.1",
-    "@types/jest": "^27.0.3",
-    "@types/node-fetch": "^2.6.4",
-    "@typescript-eslint/eslint-plugin": "^5.5.0",
-    "@typescript-eslint/parser": "^5.5.0",
-    "eslint": "^8.7.0",
-    "eslint-plugin-snarkyjs": "^0.1.0",
-    "husky": "^7.0.1",
-    "jest": "^27.3.1",
-    "lint-staged": "^11.0.1",
-    "prettier": "^2.3.2",
-    "ts-jest": "^27.0.7",
-    "typescript": "^4.7.2"
-  },
-  "peerDependencies": {
-    "o1js": "^0.13.1"
-  },
-  "dependencies": {
-    "find-npm-prefix": "^1.0.2",
-    "fs-extra": "^11.1.1",
-    "ora": "^6.3.1"
+    "husky": "^7.0.4"
   }
 }

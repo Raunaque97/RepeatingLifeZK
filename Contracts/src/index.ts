@@ -5,6 +5,7 @@ import {
   GameOfLifeZkProgram,
   GameOfLifeRecursiveProof,
 } from './gameOfLifeZkProgram.js';
+import { getNextState } from './gameOfLifeSimulator';
 
 export {
   Board,
@@ -13,4 +14,5 @@ export {
   GameOfLifeZkProgram,
   GameOfLifeRecursiveProof,
   generateProof,
+  getNextState,
 };

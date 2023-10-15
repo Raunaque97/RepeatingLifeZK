@@ -1,5 +1,5 @@
-import { Mina, PublicKey } from 'snarkyjs';
-import { Board, generateProof } from '../../../build/src';
+import { Mina, PublicKey } from 'o1js';
+import { Board, generateProof } from '@game_of_life/contracts';
 
 // console.log('worker loaded');
 let gameOfLifeContractInstance = undefined;
@@ -14,6 +14,7 @@ onmessage = async (msg) => {
       postMessage({ loaded: true });
       break;
     case 'getSubmitSolutionTxProof':
+      // eslint-disable-next-line no-case-declarations
       let txJson = await getSubmitSolutionTxProof(
         msg.data.steps,
         msg.data.solution
@@ -27,7 +28,7 @@ onmessage = async (msg) => {
 
 async function loadContract(address) {
   const { GameOfLife, GameOfLifeZkProgram } = await import(
-    '../../../build/src'
+    '@game_of_life/contracts'
   );
   console.log('compiling zk program');
   let time = Date.now();

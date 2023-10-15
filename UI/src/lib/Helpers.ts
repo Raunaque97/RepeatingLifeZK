@@ -1,4 +1,4 @@
-import { getNextState } from '../../../src/gameOfLifeSimulator';
+import { getNextState } from '@game_of_life/contracts';
 
 export function isStillLife(board: number[][]): boolean {
   const nextState = getNextState(board);

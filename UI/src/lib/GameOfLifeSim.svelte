@@ -1,5 +1,5 @@
 <script>
-  import { getNextState } from '../../../src/gameOfLifeSimulator';
+  import { getNextState } from '@game_of_life/contracts';
 
   let grid = Array(8)
     .fill([])
