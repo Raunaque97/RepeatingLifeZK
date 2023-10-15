@@ -1,4 +1,4 @@
-import { SmartContract, method, isReady, Circuit, UInt32 } from 'snarkyjs';
+import { SmartContract, method, UInt32, Provable } from 'o1js';
 import { getNextState } from './gameOfLifeSimulator.js';
 import {
   Board,
@@ -44,7 +44,7 @@ class GameOfLife extends SmartContract {
 }
 
 /**
- * verify wheter all values are only 0 or 1
+ * verify whether all values are only 0 or 1
  */
 export function verifyValidBoard(board: Board) {
   for (let i = 0; i < boardSize; i++) {
@@ -85,16 +85,16 @@ export function verifyCorrectTransition(from: Board, to: Board) {
         .map(([i, j]) => from.value[i][j])
         .reduce((a, b) => a.add(b), UInt32.zero);
 
-      let newValue = Circuit.if(
+      let newValue = Provable.if(
         from.value[i][j].equals(UInt32.zero),
         // if the cell is dead it is gets reborn if it has 3 neighbours
-        Circuit.if(
+        Provable.if(
           liveNeighbours.equals(UInt32.from(3)),
           UInt32.one,
           UInt32.zero
         ),
         // if the cell is alive it survives if it has 2 or 3 neighbours
-        Circuit.if(
+        Provable.if(
           liveNeighbours
             .equals(UInt32.from(3))
             .or(liveNeighbours.equals(UInt32.from(2))),

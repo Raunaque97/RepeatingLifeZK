@@ -1,20 +1,10 @@
 import { verifyCorrectTransition, verifyValidBoard } from './gameOfLife.js';
-import {
-  Struct,
-  UInt32,
-  Experimental,
-  SelfProof,
-  isReady,
-  Circuit,
-  Empty,
-} from 'snarkyjs';
-
-await isReady;
+import { Struct, UInt32, Experimental, SelfProof, Empty, Provable } from 'o1js';
 
 export const boardSize = 8;
 
 export class Board extends Struct({
-  value: Circuit.array(Circuit.array(UInt32, boardSize), boardSize),
+  value: Provable.Array(Provable.Array(UInt32, boardSize), boardSize),
 }) {
   static from(value: number[][]) {
     return new Board({

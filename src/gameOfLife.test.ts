@@ -7,7 +7,7 @@ import {
   AccountUpdate,
   UInt32,
   verify,
-} from 'snarkyjs';
+} from 'o1js';
 import { GameOfLifeZkProgram } from './gameOfLifeZkProgram';
 
 describe('gameOfLife Contract', () => {

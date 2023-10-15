@@ -10,7 +10,7 @@
  * Run with node:     `$ node build/src/run.js`.
  */
 
-import { AccountUpdate, Mina, PrivateKey, shutdown } from 'snarkyjs';
+import { AccountUpdate, Mina, PrivateKey } from 'o1js';
 import { Board, GameOfLife, generateProof } from './gameOfLife.js';
 import { GameOfLifeZkProgram } from './gameOfLifeZkProgram.js';
 import { getNextState } from './gameOfLifeSimulator.js';
@@ -25,20 +25,23 @@ const zkAppAddress = zkAppPrivateKey.toPublicKey();
 // create an instance of the smart contract
 const zkApp = new GameOfLife(zkAppAddress);
 
-console.log('compiling...');
+console.log('compiling ...');
+console.time('compiling took');
 const { verificationKey } = await GameOfLifeZkProgram.compile();
-// console.log('verificationKey', verificationKey);
+console.log('GameOfLifeZkProgram verificationKey', verificationKey);
 await GameOfLife.compile();
-console.log('creating Deploy transaction...');
+console.timeEnd('compiling took');
+
+console.log('creating Deploy transaction ...');
+console.time('deploying took');
 let tx = await Mina.transaction(sender, () => {
   AccountUpdate.fundNewAccount(sender);
   zkApp.deploy();
 });
-console.log('proving...');
-let time = Date.now();
+console.log('proving deploy txn ...');
 await tx.prove();
-console.log('proving Deploy took', Date.now() - time, 'ms');
 await tx.sign([zkAppPrivateKey, senderKey]).send();
+console.timeEnd('deploying took');
 
 let solution = [
   [0, 0, 0, 0, 0, 0, 0, 0],
@@ -51,13 +54,13 @@ let solution = [
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
-console.log('Submitting solution...');
+console.log('Submitting Still solution ...');
+console.time('submitting took');
 tx = await Mina.transaction(sender, () => {
   zkApp.submitStillSolution(Board.from(solution));
 });
-time = Date.now();
 await tx.prove();
-console.log('proving took', Date.now() - time, 'ms');
+console.timeEnd('submitting took');
 await tx.sign([senderKey]).send();
 
 // Repeater solution
@@ -76,19 +79,17 @@ solution = [
 //     .map((row) => row.join(''))
 //     .join('\n')
 // );
-
-time = Date.now();
+console.log('Submitting Repeater solution ...');
+console.time('generating resursiveProof took');
 let resursiveProof = await generateProof(solution, 2);
-console.log('generating resursiveProof took', Date.now() - time, 'ms');
-
+console.timeEnd('generating resursiveProof took');
 // const isCorrect = await verify(proof3.toJSON(), verificationKey);
 // expect(isCorrect).toBe(true);
-
 tx = await Mina.transaction(sender, () => {
   let zkApp = new GameOfLife(zkAppAddress);
   zkApp.submitRepeaterSolution(resursiveProof);
 });
-time = Date.now();
+console.time('submitting took');
 await tx.prove();
-console.log('proving took', Date.now() - time, 'ms');
+console.timeEnd('submitting took');
 await tx.sign([senderKey]).send();

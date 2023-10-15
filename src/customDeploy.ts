@@ -5,20 +5,12 @@ import util from 'util';
 import ora from 'ora';
 import red from 'chalk';
 import green from 'chalk';
-import {
-  PrivateKey,
-  Mina,
-  addCachedAccount,
-  isReady,
-  Types,
-  AccountUpdate,
-} from 'snarkyjs';
+import { PrivateKey, Mina, addCachedAccount, Types, AccountUpdate } from 'o1js';
 import { GameOfLife, GameOfLifeZkProgram } from './index.js';
 const log = console.log;
 
 const DEFAULT_GRAPHQL = 'https://proxy.berkeley.minaexplorer.com/graphql'; // The endpoint used to interact with the network
 const DIR = sh('npm prefix').toString().replace(/\n$/, '');
-await isReady;
 
 const alias = 'berkeley'.toLowerCase();
 
